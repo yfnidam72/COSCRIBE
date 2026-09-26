@@ -18,4 +18,5 @@ docs/darija-comparison.html
 installer/build/
 installer/dist/
 *.spec
+!installer/CoscribeSetup.spec
 scratch$*

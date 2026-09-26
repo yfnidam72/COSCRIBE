@@ -27,7 +27,8 @@ from tkinter import filedialog, ttk
 APP = "Coscribe"
 REPO = "yfnidam72/COSCRIBE"
 UV_URL = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
-FFMPEG_URL = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+# gyan.dev "essentials" (has libass + HarfBuzz, which Arabic needs), from its GitHub mirror: far faster.
+FFMPEG_FALLBACK = "https://github.com/GyanD/codexffmpeg/releases/download/9.0.2/ffmpeg-9.0.2-essentials_build.zip"
 OLLAMA_URL = "https://ollama.com/download/OllamaSetup.exe"
 DEFAULT_DIR = Path(os.environ.get("LOCALAPPDATA", str(Path.home()))) / "Programs" / APP
 NO_WINDOW = 0x08000000
@@ -78,6 +79,16 @@ def source_zip_url() -> str:
         return f"https://github.com/{REPO}/archive/refs/tags/{tag}.zip"
     except Exception:  # noqa: BLE001
         return f"https://github.com/{REPO}/archive/refs/heads/main.zip"
+
+
+def ffmpeg_url() -> str:
+    try:
+        req = urllib.request.Request("https://api.github.com/repos/GyanD/codexffmpeg/releases/latest",
+                                     headers={"User-Agent": "CoscribeSetup"})
+        assets = json.loads(urllib.request.urlopen(req, timeout=20).read())["assets"]
+        return next(a["browser_download_url"] for a in assets if a["name"].endswith("essentials_build.zip"))
+    except Exception:  # noqa: BLE001
+        return FFMPEG_FALLBACK
 
 
 def ps(script: str) -> None:
@@ -148,7 +159,7 @@ class Installer:
 
         # 4. FFmpeg (private copy, so nothing else on the PC is touched)
         if not any((tools / "ffmpeg").glob("**/bin/ffmpeg.exe")):
-            z = download(FFMPEG_URL, self.tmp / "ffmpeg.zip", self.sub(0.55, 0.12, "Downloading FFmpeg"))
+            z = download(ffmpeg_url(), self.tmp / "ffmpeg.zip", self.sub(0.55, 0.12, "Downloading FFmpeg"))
             self.step(0.67, "Unpacking FFmpeg")
             with zipfile.ZipFile(z) as zf:
                 zf.extractall(tools / "ffmpeg")
@@ -191,8 +202,12 @@ $s.Description='Coscribe - the local video translation app';$s.Save()""")
         uninstall = d / "uninstall.ps1"
         uninstall.write_text(f"""# Removes Coscribe. Your videos in Videos\\Coscribe are kept.
 $ErrorActionPreference = 'SilentlyContinue'
-Get-CimInstance Win32_Process | Where-Object {{ $_.CommandLine -like '*Coscribe.pyw*' }} | ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force }}
-Remove-Item "$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\{APP}.lnk", "$env:USERPROFILE\\Desktop\\{APP}.lnk", "$env:USERPROFILE\\OneDrive\\Desktop\\{APP}.lnk" -Force
+Get-CimInstance Win32_Process | Where-Object {{ $_.CommandLine -like '*{d}*Coscribe.pyw*' }} | ForEach-Object {{ Stop-Process -Id $_.ProcessId -Force }}
+# Only remove shortcuts that point into this install (never another copy of Coscribe).
+$ws = New-Object -ComObject WScript.Shell
+foreach ($lnk in @("$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\{APP}.lnk", "$env:USERPROFILE\\Desktop\\{APP}.lnk", "$env:USERPROFILE\\OneDrive\\Desktop\\{APP}.lnk")) {{
+    if ((Test-Path $lnk) -and $ws.CreateShortcut($lnk).TargetPath -like '{d}\\*') {{ Remove-Item $lnk -Force }}
+}}
 Remove-Item 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{APP}' -Recurse -Force
 Start-Sleep 1
 Remove-Item '{d}' -Recurse -Force
