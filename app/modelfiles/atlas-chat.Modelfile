@@ -1,0 +1,20 @@
+FROM ./Atlas-Chat-9B.Q4_K_M.gguf
+
+# Gemma-2 chat format (Atlas-Chat is a Gemma-2 fine-tune; no system role, so a
+# system message is folded into the user turn).
+TEMPLATE """{{- range $i, $_ := .Messages }}
+{{- $last := eq (len (slice $.Messages $i)) 1 }}
+{{- if or (eq .Role "user") (eq .Role "system") }}<start_of_turn>user
+{{ .Content }}<end_of_turn>
+{{ if $last }}<start_of_turn>model
+{{ end }}
+{{- else if eq .Role "assistant" }}<start_of_turn>model
+{{ .Content }}{{ if not $last }}<end_of_turn>
+{{ end }}
+{{- end }}
+{{- end }}"""
+
+PARAMETER stop "<start_of_turn>"
+PARAMETER stop "<end_of_turn>"
+PARAMETER temperature 0
+PARAMETER num_ctx 4096

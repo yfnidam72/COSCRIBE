@@ -1,0 +1,25 @@
+/* Caption fonts - the same files ffmpeg/libass uses for export, so preview matches output. */
+@font-face{font-family:"Cairo";src:url(/fonts/Cairo-Regular.ttf);font-weight:400}
+@font-face{font-family:"Cairo";src:url(/fonts/Cairo-Bold.ttf);font-weight:700}
+@font-face{font-family:"Tajawal";src:url(/fonts/Tajawal-Regular.ttf);font-weight:400}
+@font-face{font-family:"Tajawal";src:url(/fonts/Tajawal-Bold.ttf);font-weight:700}
+@font-face{font-family:"IBM Plex Sans Arabic";src:url(/fonts/IBMPlexSansArabic-Regular.ttf);font-weight:400}
+@font-face{font-family:"IBM Plex Sans Arabic";src:url(/fonts/IBMPlexSansArabic-Bold.ttf);font-weight:700}
+@font-face{font-family:"Readex Pro";src:url(/fonts/ReadexPro-Regular.ttf);font-weight:400}
+@font-face{font-family:"Readex Pro";src:url(/fonts/ReadexPro-Bold.ttf);font-weight:700}
+@font-face{font-family:"Noto Kufi Arabic";src:url(/fonts/NotoKufiArabic-Regular.ttf);font-weight:400}
+@font-face{font-family:"Noto Kufi Arabic";src:url(/fonts/NotoKufiArabic-Bold.ttf);font-weight:700}
+@font-face{font-family:"Noto Naskh Arabic";src:url(/fonts/NotoNaskhArabic-Regular.ttf);font-weight:400}
+@font-face{font-family:"Noto Naskh Arabic";src:url(/fonts/NotoNaskhArabic-Bold.ttf);font-weight:700}
+@font-face{font-family:"Amiri";src:url(/fonts/Amiri-Regular.ttf);font-weight:400}
+@font-face{font-family:"Amiri";src:url(/fonts/Amiri-Bold.ttf);font-weight:700}
+@font-face{font-family:"Lalezar";src:url(/fonts/Lalezar-Regular.ttf);font-weight:400}
+@font-face{font-family:"Inter";src:url(/fonts/Inter-Regular.ttf);font-weight:400}
+@font-face{font-family:"Inter";src:url(/fonts/Inter-Bold.ttf);font-weight:700}
+@font-face{font-family:"Montserrat";src:url(/fonts/Montserrat-Regular.ttf);font-weight:400}
+@font-face{font-family:"Montserrat";src:url(/fonts/Montserrat-Bold.ttf);font-weight:700}
+@font-face{font-family:"Poppins";src:url(/fonts/Poppins-Regular.ttf);font-weight:400}
+@font-face{font-family:"Poppins";src:url(/fonts/Poppins-Bold.ttf);font-weight:700}
+@font-face{font-family:"Anton";src:url(/fonts/Anton-Regular.ttf);font-weight:400}
+@font-face{font-family:"Bebas Neue";src:url(/fonts/BebasNeue-Regular.ttf);font-weight:400}
+@font-face{font-family:"Noto Sans Tifinagh";src:url(/fonts/NotoSansTifinagh-Regular.ttf);font-weight:400}

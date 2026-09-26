@@ -1,0 +1,15 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Local data: projects, settings, logs, WebView profile
+data/
+
+# Downloaded models (several GB; fetched on first use)
+models/
+
+# Scratch / test output
+scratch/
+docs/darija-comparison.html
+*.log

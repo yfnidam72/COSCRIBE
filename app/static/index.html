@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en" dir="ltr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coscribe</title>
+<link rel="icon" href="/static/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/fonts.css">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- ============================ SIDE RAIL ============================ -->
+<nav class="rail" aria-label="Main">
+  <a class="rail-logo" href="#/" data-i18n-title="library"><img src="/static/logo.svg" alt="Coscribe" width="30" height="30"></a>
+  <a class="rail-btn" href="#/" data-nav="library" data-i18n-title="library">
+    <svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="7" height="7" rx="1.8"/><rect x="13.5" y="4" width="7" height="7" rx="1.8"/><rect x="3.5" y="14" width="7" height="6" rx="1.8"/><rect x="13.5" y="14" width="7" height="6" rx="1.8"/></svg>
+    <span data-i18n="library">Library</span>
+  </a>
+  <a class="rail-btn" id="railEditor" href="#/" data-nav="editor" hidden>
+    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 15h5m-5-3h10"/></svg>
+    <span data-i18n="editor">Editor</span>
+  </a>
+  <a class="rail-btn" href="#/themes" data-nav="themes" data-i18n-title="themes">
+    <svg viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.1 0 1.7-.8 1.7-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7h2A4.6 4.6 0 0 0 20.5 10c0-3.6-3.8-6.5-8.5-6.5Z"/><circle cx="7.6" cy="11" r="1.2"/><circle cx="10.5" cy="7.4" r="1.2"/><circle cx="15" cy="7.8" r="1.2"/></svg>
+    <span data-i18n="themes">Themes</span>
+  </a>
+  <div class="rail-spacer"></div>
+  <button class="rail-btn" id="keysBtn" data-i18n-title="shortcuts">
+    <svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h1m3 0h1m3 0h1m3 0h.5M7 14h10"/></svg>
+    <span data-i18n="keys">Keys</span>
+  </button>
+  <button class="rail-btn" id="settingsBtn" data-i18n-title="settings">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+    <span data-i18n="settings">Settings</span>
+  </button>
+</nav>
+
+<div class="shell">
+
+<!-- ============================ LIBRARY ============================ -->
+<main id="library" class="view" hidden>
+  <header class="lib-head">
+    <div>
+      <h1 data-i18n="library">Library</h1>
+      <p class="muted" id="libCount"></p>
+    </div>
+    <div class="lib-new">
+      <label class="field-inline">
+        <span data-i18n="spokenLanguage">Spoken language</span>
+        <select id="spokenLang"></select>
+      </label>
+      <button class="btn primary" id="newBtn">
+        <svg viewBox="0 0 24 24" class="ico"><path d="M12 5v14M5 12h14"/></svg>
+        <span data-i18n="newProject">New project</span>
+      </button>
+      <input type="file" id="fileInput" accept="video/*,.mkv,.mov,.avi,.webm,.m4v" hidden>
+    </div>
+  </header>
+
+  <div class="lib-tools" id="libTools">
+    <div class="search">
+      <svg viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+      <input id="libSearch" type="search" data-i18n-ph="searchProjects" placeholder="Search projects">
+    </div>
+    <div class="chips" id="libFilter">
+      <button data-v="all" class="on" data-i18n="all">All</button>
+      <button data-v="progress" data-i18n="inProgress">In progress</button>
+      <button data-v="translated" data-i18n="translated">Translated</button>
+      <button data-v="exported" data-i18n="exported">Exported</button>
+    </div>
+    <label class="field-inline sort">
+      <span data-i18n="sortBy">Sort</span>
+      <select id="libSort">
+        <option value="updated" data-i18n="sortRecent">Recently edited</option>
+        <option value="created" data-i18n="sortCreated">Recently added</option>
+        <option value="name" data-i18n="sortName">Name</option>
+        <option value="duration" data-i18n="sortDuration">Duration</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <section class="empty-hero" id="emptyHero" hidden>
+    <h2 data-i18n-html="heroTitle">Captions in any language,<br><em>styled your way.</em></h2>
+    <p data-i18n="heroSub">Drop a video. Coscribe listens, writes the captions, translates them, and burns them in — all on this computer.</p>
+    <label class="drop" id="drop" for="fileInput">
+      <span class="drop-icon"><svg viewBox="0 0 24 24" class="ico lg"><path d="M12 16V4m0 0-4.5 4.5M12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg></span>
+      <strong data-i18n="dropHere">Drop a video here</strong>
+      <span data-i18n="dropHint">or click to choose a file · MP4, MOV, MKV, WEBM</span>
+    </label>
+  </section>
+  <p class="none-found muted" id="noneFound" hidden data-i18n="noMatches">No projects match.</p>
+</main>
+
+<!-- ============================ THEMES ============================ -->
+<main id="themes" class="view" hidden>
+  <header class="lib-head">
+    <div>
+      <h1 data-i18n="themes">Themes</h1>
+      <p class="muted" data-i18n="themesSub">Caption looks you can reuse on any video. Click one to preview it large; save your own from the Style tab.</p>
+    </div>
+  </header>
+  <div id="themeGallery"></div>
+</main>
+
+<!-- ============================ EDITOR ============================ -->
+<main id="editor" class="view editor" hidden>
+  <header class="topbar">
+    <input id="projName" spellcheck="false" aria-label="Project name">
+    <ol class="steps" id="steps">
+      <li data-step="transcribe"><i>1</i><span data-i18n="stepTranscribe">Transcribe</span></li>
+      <li data-step="translate"><i>2</i><span data-i18n="stepTranslate">Translate</span></li>
+      <li data-step="style"><i>3</i><span data-i18n="stepStyle">Style</span></li>
+      <li data-step="export"><i>4</i><span data-i18n="stepExport">Export</span></li>
+    </ol>
+    <div class="top-right">
+      <span class="saved" id="saved"></span>
+      <button class="btn primary" id="topExport" data-i18n="exportVideo">Export video</button>
+    </div>
+  </header>
+
+  <div class="editor-body">
+    <section class="stage-col">
+      <div class="stage" id="stage" dir="ltr">
+        <div class="frame" id="frame">
+          <video id="video" playsinline preload="auto"></video>
+          <div class="cap-layer" id="capLayer"></div>
+          <div class="job" id="job" hidden>
+            <div class="job-card">
+              <div class="spinner"></div>
+              <div class="job-msg" id="jobMsg"></div>
+              <div class="bar"><div id="jobBar"></div></div>
+              <div class="job-meta"><span id="jobPct">0%</span><span id="jobEta"></span></div>
+              <button class="btn ghost small" id="cancelJob" data-i18n="cancel">Cancel</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="transport" dir="ltr">
+        <button class="icon-btn" id="playBtn" title="Space">
+          <svg id="playIcon" viewBox="0 0 24 24" width="20" height="20"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>
+        </button>
+        <span class="time" id="time">0:00 / 0:00</span>
+        <div class="timeline" id="timeline">
+          <div class="segs" id="segs"></div>
+          <div class="playhead" id="playhead"></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <nav class="tabs" role="tablist">
+        <button role="tab" class="tab active" data-tab="captions" data-i18n="tabCaptions">Captions</button>
+        <button role="tab" class="tab" data-tab="style" data-i18n="tabStyle">Style</button>
+        <button role="tab" class="tab" data-tab="export" data-i18n="tabExport">Export</button>
+      </nav>
+
+      <!-- ---------- captions ---------- -->
+      <div class="tab-body" data-body="captions">
+        <div class="card translate-card">
+          <div class="lang-row">
+            <div class="lang-col">
+              <small data-i18n="from">From</small>
+              <strong id="fromLang">—</strong>
+            </div>
+            <svg class="arrow ico" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
+            <div class="lang-col">
+              <small data-i18n="to">To</small>
+              <select id="targetLang"></select>
+            </div>
+          </div>
+          <div class="engine">
+            <small data-i18n="quality">Quality</small>
+            <div class="seg full" id="engineSeg">
+              <button data-v="gemma" data-i18n="best">Best</button>
+              <button data-v="nllb" data-i18n="fast">Fast</button>
+            </div>
+            <p class="engine-hint" id="engineHint"></p>
+          </div>
+          <button class="btn primary wide" id="translateBtn"></button>
+        </div>
+
+        <div class="field-row">
+          <span class="label" data-i18n="showOnVideo">Show on video</span>
+          <div class="seg" id="showSeg">
+            <button data-v="original" data-i18n="original">Original</button>
+            <button data-v="translation" data-i18n="translation">Translation</button>
+            <button data-v="both" data-i18n="both">Both</button>
+          </div>
+        </div>
+        <div class="field-row">
+          <span class="label" data-i18n="captionLength">Caption length</span>
+          <div class="seg" id="lengthSeg">
+            <button data-v="short" data-i18n="short">Short</button>
+            <button data-v="normal" data-i18n="normal">Normal</button>
+            <button data-v="long" data-i18n="long">Long</button>
+          </div>
+        </div>
+
+        <div class="cap-tools">
+          <div class="search small">
+            <svg viewBox="0 0 24 24" class="ico"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg>
+            <input id="findInput" type="search" data-i18n-ph="findInCaptions" placeholder="Find in captions">
+          </div>
+          <button class="icon-btn2" id="replaceToggle" data-i18n-title="replace"><svg viewBox="0 0 24 24" class="ico"><path d="M4 7h11l-3-3m3 3-3 3M20 17H9l3-3m-3 3 3 3"/></svg></button>
+          <button class="icon-btn2" id="undoBtn" data-i18n-title="undo"><svg viewBox="0 0 24 24" class="ico"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></button>
+          <button class="icon-btn2" id="redoBtn" data-i18n-title="redo"><svg viewBox="0 0 24 24" class="ico"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></button>
+          <button class="icon-btn2" id="addCapBtn" data-i18n-title="addCaption"><svg viewBox="0 0 24 24" class="ico"><path d="M12 5v14M5 12h14"/></svg></button>
+        </div>
+        <div class="replace-row" id="replaceRow" hidden>
+          <input id="replaceInput" data-i18n-ph="replaceWith" placeholder="Replace with">
+          <button class="btn small" id="replaceAll" data-i18n="replaceAll">Replace all</button>
+        </div>
+        <p class="find-count muted" id="findCount" hidden></p>
+
+        <div class="cap-list" id="capList"></div>
+
+        <details class="more">
+          <summary data-i18n="wrongLanguage">Wrong language detected?</summary>
+          <div class="row">
+            <select id="reLang"></select>
+            <button class="btn" id="reTranscribe" data-i18n="transcribeAgain">Transcribe again</button>
+          </div>
+        </details>
+      </div>
+
+      <!-- ---------- style ---------- -->
+      <div class="tab-body" data-body="style" hidden>
+        <div class="group">
+          <div class="group-head">
+            <h3 data-i18n="themes">Themes</h3>
+            <a class="link" href="#/themes" data-i18n="browseAll">Browse all</a>
+          </div>
+          <div class="theme-strip" id="themeStrip"></div>
+          <button class="btn wide" id="saveThemeBtn">
+            <svg viewBox="0 0 24 24" class="ico"><path d="M12 5v14M5 12h14"/></svg>
+            <span data-i18n="saveAsTheme">Save current look as a theme</span>
+          </button>
+        </div>
+
+        <div class="group">
+          <h3 data-i18n="font">Font</h3>
+          <div class="fonts" id="fonts"></div>
+          <div class="ctl"><label data-i18n="size">Size</label><input type="range" id="size" min="2.5" max="12" step="0.1"><output id="sizeOut"></output></div>
+          <div class="toggles">
+            <button class="chip" id="boldT"><b>B</b> <span data-i18n="bold">Bold</span></button>
+            <button class="chip" id="upperT">AA <span data-i18n="uppercase">Uppercase</span></button>
+          </div>
+          <div class="ctl"><label data-i18n="textColor">Text color</label><div class="swatches" id="colorSw"></div></div>
+        </div>
+
+        <div class="group">
+          <h3 data-i18n="background">Background</h3>
+          <div class="seg full" id="bgSeg">
+            <button data-v="none" data-i18n="bgNone">None</button>
+            <button data-v="box" data-i18n="bgBox">Box</button>
+            <button data-v="outline" data-i18n="bgOutline">Outline</button>
+            <button data-v="shadow" data-i18n="bgShadow">Shadow</button>
+          </div>
+          <div class="ctl" id="bgColorCtl"><label data-i18n="color">Color</label><div class="swatches" id="bgSw"></div></div>
+          <div class="ctl" id="opCtl"><label data-i18n="opacity">Opacity</label><input type="range" id="bgOpacity" min="0" max="100" step="1"><output id="opOut"></output></div>
+          <div class="ctl" id="padCtl"><label data-i18n="padding">Padding</label><input type="range" id="pad" min="0.05" max="0.8" step="0.01"><output id="padOut"></output></div>
+          <div class="ctl" id="olCtl"><label data-i18n="thickness">Thickness</label><input type="range" id="outline" min="0.02" max="0.2" step="0.005"><output id="olOut"></output></div>
+        </div>
+
+        <div class="group">
+          <h3 data-i18n="position">Position</h3>
+          <div class="seg full" id="posSeg">
+            <button data-v="top" data-i18n="top">Top</button>
+            <button data-v="middle" data-i18n="middle">Middle</button>
+            <button data-v="bottom" data-i18n="bottom">Bottom</button>
+          </div>
+          <div class="ctl" id="offCtl"><label data-i18n="distance">Distance from edge</label><input type="range" id="offset" min="0" max="40" step="0.5"><output id="offOut"></output></div>
+          <div class="ctl"><label data-i18n="sideMargins">Side margins</label><input type="range" id="sideMargin" min="2" max="30" step="0.5"><output id="sideOut"></output></div>
+        </div>
+
+        <div class="group" id="secGroup">
+          <h3><span data-i18n="secondLine">Second line</span> <small data-i18n="whenBoth">(when showing both)</small></h3>
+          <div class="ctl"><label data-i18n="size">Size</label><input type="range" id="secondarySize" min="40" max="100" step="1"><output id="secOut"></output></div>
+          <div class="ctl"><label data-i18n="color">Color</label><div class="swatches" id="secSw"></div></div>
+        </div>
+      </div>
+
+      <!-- ---------- export ---------- -->
+      <div class="tab-body" data-body="export" hidden>
+        <div class="card summary" id="summary"></div>
+
+        <div class="group">
+          <h3 data-i18n="videoQuality">Video size</h3>
+          <div class="seg full" id="resSeg">
+            <button data-v="source" data-i18n="resSource">Original</button>
+            <button data-v="1080">1080p</button>
+            <button data-v="720">720p</button>
+          </div>
+          <h3 class="mt" data-i18n="alsoSave">Also save subtitle files</h3>
+          <div class="toggles">
+            <button class="chip on" data-sub="srt">SRT</button>
+            <button class="chip" data-sub="vtt">WebVTT</button>
+          </div>
+        </div>
+
+        <button class="btn primary wide big" id="exportBtn">
+          <svg viewBox="0 0 24 24" class="ico"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5"/><path d="M4 17v1a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1"/></svg>
+          <span data-i18n="exportWithCaptions">Export video with captions</span>
+        </button>
+        <p class="hint"><span data-i18n="savesTo">Saves to</span> <span id="outDir" dir="ltr"></span></p>
+
+        <div class="done-box" id="doneBox" hidden>
+          <strong data-i18n="exportedOk">Exported</strong>
+          <span id="doneName" dir="ltr"></span>
+          <button class="btn small" id="revealBtn" data-i18n="showInFolder">Show in folder</button>
+        </div>
+
+        <div class="group">
+          <h3 data-i18n="subtitlesOnly">Subtitle files only</h3>
+          <div class="sub-grid">
+            <span class="muted" data-i18n="original">Original</span>
+            <button class="btn small" data-save="text:srt">.srt</button>
+            <button class="btn small" data-save="text:vtt">.vtt</button>
+            <span class="muted" data-i18n="translation">Translation</span>
+            <button class="btn small" data-save="tr:srt">.srt</button>
+            <button class="btn small" data-save="tr:vtt">.vtt</button>
+          </div>
+        </div>
+        <button class="btn danger-ghost" id="deleteBtn" data-i18n="deleteProject">Delete this project</button>
+      </div>
+    </aside>
+  </div>
+</main>
+
+</div>
+
+<!-- ============================ MODALS ============================ -->
+<div class="modal" id="settingsModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <header><h2 id="settingsTitle" data-i18n="settings">Settings</h2><button class="x" data-close>×</button></header>
+    <div class="modal-body">
+      <div class="set-row"><label data-i18n="interfaceLanguage">Interface language</label>
+        <div class="seg" id="uiLangSeg"><button data-v="en">English</button><button data-v="fr">Français</button><button data-v="ar">العربية</button></div></div>
+      <div class="set-row"><label data-i18n="appearance">Appearance</label>
+        <div class="seg" id="appearanceSeg"><button data-v="dark" data-i18n="dark">Dark</button><button data-v="light" data-i18n="light">Light</button><button data-v="system" data-i18n="system">System</button></div></div>
+      <div class="set-row"><label data-i18n="defaultTarget">Translate into by default</label><select id="setTarget"></select></div>
+      <div class="set-row"><label data-i18n="defaultQuality">Default quality</label>
+        <div class="seg" id="setEngine"><button data-v="gemma" data-i18n="best">Best</button><button data-v="nllb" data-i18n="fast">Fast</button></div></div>
+      <div class="set-row"><label data-i18n="defaultTheme">Theme for new projects</label><select id="setTheme"></select></div>
+      <div class="set-row"><label data-i18n="exportFolder">Export folder</label>
+        <button class="btn small" id="openOut"><span id="outDir2" dir="ltr"></span></button></div>
+      <div class="about">
+        <img src="/static/logo.svg" width="36" height="36" alt="">
+        <div>
+          <strong>Coscribe</strong> <span class="muted">· <span data-i18n="tagline">the local video translation app</span></span><br>
+          <span class="muted" data-i18n="madeBy">Made by Youssef Nidam</span>
+          <p class="muted small" data-i18n="modelsLine">Runs 100% on this computer: Whisper large-v3 · TranslateGemma 12B · NLLB-200 · Atlas-Chat 9B · FFmpeg/libass.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="keysModal" hidden>
+  <div class="modal-card narrow" role="dialog" aria-modal="true" aria-labelledby="keysTitle">
+    <header><h2 id="keysTitle" data-i18n="shortcuts">Keyboard shortcuts</h2><button class="x" data-close>×</button></header>
+    <div class="modal-body keys" id="keysList"></div>
+  </div>
+</div>
+
+<div class="modal" id="askModal" hidden>
+  <div class="modal-card narrow" role="dialog" aria-modal="true" aria-labelledby="askTitle">
+    <header><h2 id="askTitle"></h2><button class="x" data-close>×</button></header>
+    <form class="modal-body" id="askForm">
+      <p class="muted" id="askText"></p>
+      <input id="askInput" autocomplete="off">
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close data-i18n="cancel">Cancel</button>
+        <button type="submit" class="btn primary" id="askOk">OK</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="menu" id="menu" hidden></div>
+<div class="dropover" id="dropover" hidden><div><svg viewBox="0 0 24 24" class="ico lg"><path d="M12 16V4m0 0-4.5 4.5M12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg><strong data-i18n="dropToCreate">Drop to create a new project</strong></div></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="/static/i18n.js"></script>
+<script src="/static/themes.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
