@@ -4,4 +4,4 @@ Copyright (c) 2026 Youssef Nidam
 Third-party components keep their own licenses:
 - Caption fonts in app/fonts: SIL Open Font License 1.1 (see app/fonts/OFL.txt)
 - AI models are NOT included in this repository; they are downloaded on first
-  use and are governed by their own terms (see README, "Model licenses").
+  use and are governed by their own terms (see the License section of README.md).
