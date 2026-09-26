@@ -110,6 +110,7 @@ async function boot() {
   wireLibrary();
   wireEditor();
   wireSettings();
+  wireModels();
   applyI18n();
   refreshLangSelects();
   window.addEventListener("resize", layoutFrame);
@@ -124,6 +125,7 @@ function route() {
   const m = h.match(/^#\/p\/([a-f0-9]{12})(?:\/(captions|style|export))?$/);
   if (m) { showView("editor"); openProject(m[1]).then(() => m[2] && switchTab(m[2])); return; }
   leaveEditor();
+  if (h === "#/models") { showView("models"); loadModels(); return; }
   if (h === "#/themes") {
     showView("themes");
     // Tiles use a real project frame as backdrop when one exists.
@@ -133,10 +135,11 @@ function route() {
   }
   showView("library");
   loadLibrary();
+  refreshModelBanner();
 }
 
 function showView(name) {
-  for (const v of ["library", "themes", "editor"]) $(`#${v}`).hidden = v !== name;
+  for (const v of ["library", "themes", "models", "editor"]) $(`#${v}`).hidden = v !== name;
   $$(".rail-btn[data-nav]").forEach((b) => b.classList.toggle("on", b.dataset.nav === name));
 }
 
@@ -174,6 +177,7 @@ function wireSettings() {
   $("#setTarget").addEventListener("change", (e) => saveSettings({ defaultTarget: e.target.value }));
   $("#setTheme").addEventListener("change", (e) => saveSettings({ defaultTheme: e.target.value || null }));
   $("#openOut").addEventListener("click", () => api("/api/reveal-output", { json: {} }).catch((e) => toast(e.message, true)));
+  $("#changeOut").addEventListener("click", changeExportDir);
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyAppearance);
 }
 
@@ -192,7 +196,109 @@ function fillSettings() {
   sel.add(new Option(t("noneTheme"), ""));
   for (const th of [...S.userThemes, ...BUILTIN_THEMES]) sel.add(new Option(th.name, th.id));
   sel.value = S.settings.defaultTheme || "";
-  $("#outDir2").textContent = S.meta.output;
+  $("#outDir2").textContent = S.settings.exportDir || S.meta.output;
+  $("#outDir2").title = $("#outDir2").textContent;
+}
+
+async function changeExportDir() {
+  // Native folder picker when running inside the desktop window; typed path otherwise.
+  let dir = null;
+  if (window.pywebview && window.pywebview.api && window.pywebview.api.pick_folder) {
+    dir = await window.pywebview.api.pick_folder(S.settings.exportDir || "");
+  } else {
+    dir = await ask({ title: t("chooseFolder"), text: t("folderPath"), value: S.settings.exportDir || "", okLabel: t("save") });
+  }
+  if (!dir) return;
+  try {
+    await saveSettings({ exportDir: dir });
+    S.meta.output = S.settings.exportDir;
+    $("#outDir").textContent = S.meta.output;
+    fillSettings();
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ================================================================ models */
+let modelsTimer = null;
+async function loadModels() {
+  clearTimeout(modelsTimer);
+  let data;
+  try { data = await api("/api/models"); } catch (e) { toast(e.message, true); return; }
+  S.models = data;
+  renderModels();
+  if (data.models.some((m) => m.job) && !$("#models").hidden) modelsTimer = setTimeout(loadModels, 1000);
+}
+
+function renderModels() {
+  const { models, active, ollama } = S.models;
+  for (const [group, box] of [["transcription", "#mlTranscription"], ["translation", "#mlTranslation"]]) {
+    const el = $(box);
+    el.innerHTML = "";
+    for (const m of models.filter((x) => x.group === group)) {
+      const tagKey = "tag" + m.tag[0].toUpperCase() + m.tag.slice(1);
+      const isActive = group === "transcription" && m.id === active;
+      const row = document.createElement("div");
+      row.className = "model" + (isActive ? " active" : "");
+      row.dataset.id = m.id;
+      const needs = m.kind === "ollama" && !ollama;
+      let actions = "";
+      if (m.job) actions = "";
+      else if (!m.installed) actions = needs ? `<button class="btn small" data-mact="ollama">${t("getOllama")}</button>`
+        : `<button class="btn small primary" data-mact="download">${t("download")}</button>`;
+      else actions = `${group === "transcription" ? (isActive ? `<span class="pill tr">${t("inUse")}</span>` : `<button class="btn small" data-mact="use">${t("useThis")}</button>`) : ""}
+        <button class="btn small ghost" data-mact="remove">${t("remove")}</button>`;
+      row.innerHTML = `
+        <div class="model-title"><strong>${esc(m.name)}</strong><span class="pill">${esc(t(tagKey))}</span></div>
+        <div class="model-actions">${actions}</div>
+        <div class="model-desc">${esc(t("desc_" + m.id))}${needs ? " " + esc(t("needsOllama")) : ""}</div>
+        <div class="model-meta"><span class="dot ${m.installed ? "ok" : ""}"></span>${m.installed ? t("installed") : t("notInstalled")} · <span dir="ltr">${t("gb", { n: m.size.toFixed(1) })}</span></div>
+        ${m.job ? `<div class="bar"><div style="width:${Math.round(m.job.progress * 100)}%"></div></div><div class="job-line">${esc(m.job.message || "")} · ${Math.round(m.job.progress * 100)}%</div>` : ""}`;
+      el.append(row);
+    }
+  }
+}
+
+function wireModels() {
+  $("#models").addEventListener("click", async (e) => {
+    const b = e.target.closest("[data-mact]");
+    if (!b) return;
+    const id = b.closest(".model").dataset.id;
+    const m = S.models.models.find((x) => x.id === id);
+    const act = b.dataset.mact;
+    try {
+      if (act === "download") { await api(`/api/models/${id}/download`, { json: {} }); loadModels(); watchModel(id); }
+      if (act === "use") { await saveSettings({ whisperModel: id }); loadModels(); refreshModelBanner(); }
+      if (act === "ollama") api("/api/open-link/ollama", { json: {} });
+      if (act === "remove") {
+        if (!await ask({ title: t("remove"), text: t("confirmRemoveModel", { name: m.name, size: m.size.toFixed(1) }), okLabel: t("remove"), danger: true })) return;
+        await api(`/api/models/${id}`, { method: "DELETE" });
+        loadModels(); refreshModelBanner();
+      }
+    } catch (err) { toast(err.message, true); }
+  });
+}
+
+// Toast when a model download finishes, wherever the user is in the app.
+async function watchModel(id) {
+  for (;;) {
+    await new Promise((r) => setTimeout(r, 2000));
+    let data;
+    try { data = await api("/api/models"); } catch { continue; }
+    const m = data.models.find((x) => x.id === id);
+    if (!m || m.job) continue;
+    if (m.installed) toast(t("modelReady", { name: m.name }));
+    S.models = data;
+    refreshModelBanner();
+    if (!$("#models").hidden) renderModels();
+    return;
+  }
+}
+
+async function refreshModelBanner() {
+  try { S.models = await api("/api/models"); } catch { return; }
+  const m = S.models.models.find((x) => x.id === S.models.active);
+  const show = m && !m.installed && !m.job;
+  $("#modelBanner").hidden = !show;
+  if (show) $("#modelBannerText").textContent = t("needModelBanner", { name: m.name, size: m.size.toFixed(1) });
 }
 
 function rebuildAfterLang() {
@@ -200,6 +306,8 @@ function rebuildAfterLang() {
   buildFontGrid();
   if (!$("#library").hidden) renderLibrary();
   if (!$("#themes").hidden) renderThemeGallery();
+  if (!$("#models").hidden && S.models) renderModels();
+  if (S.models) refreshModelBanner();
   if (S.project) { renderAll(); showEngine(); }
   renderThemeStrip();
 }

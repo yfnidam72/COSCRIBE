@@ -25,6 +25,10 @@
     <svg viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.1 0 1.7-.8 1.7-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7h2A4.6 4.6 0 0 0 20.5 10c0-3.6-3.8-6.5-8.5-6.5Z"/><circle cx="7.6" cy="11" r="1.2"/><circle cx="10.5" cy="7.4" r="1.2"/><circle cx="15" cy="7.8" r="1.2"/></svg>
     <span data-i18n="themes">Themes</span>
   </a>
+  <a class="rail-btn" href="#/models" data-nav="models" data-i18n-title="models">
+    <svg viewBox="0 0 24 24"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></svg>
+    <span data-i18n="models">Models</span>
+  </a>
   <div class="rail-spacer"></div>
   <button class="rail-btn" id="keysBtn" data-i18n-title="shortcuts">
     <svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M6.5 10h1m3 0h1m3 0h1m3 0h.5M7 14h10"/></svg>
@@ -57,6 +61,12 @@
       <input type="file" id="fileInput" accept="video/*,.mkv,.mov,.avi,.webm,.m4v" hidden>
     </div>
   </header>
+
+  <div class="banner" id="modelBanner" hidden>
+    <svg viewBox="0 0 24 24" class="ico"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/><path d="M12 8v5m0 3v.5"/></svg>
+    <span id="modelBannerText"></span>
+    <a class="btn small primary" href="#/models" data-i18n="openModels">Open Models</a>
+  </div>
 
   <div class="lib-tools" id="libTools">
     <div class="search">
@@ -103,6 +113,18 @@
     </div>
   </header>
   <div id="themeGallery"></div>
+</main>
+
+<!-- ============================ MODELS ============================ -->
+<main id="models" class="view" hidden>
+  <header class="lib-head">
+    <div>
+      <h1 data-i18n="models">Models</h1>
+      <p class="muted" data-i18n="modelsSub">Everything runs on this computer.</p>
+    </div>
+  </header>
+  <section class="model-sec"><h2 data-i18n="grpTranscription">Transcription</h2><div class="model-list" id="mlTranscription"></div></section>
+  <section class="model-sec"><h2 data-i18n="grpTranslation">Translation</h2><div class="model-list" id="mlTranslation"></div></section>
 </main>
 
 <!-- ============================ EDITOR ============================ -->
@@ -346,7 +368,9 @@
         <div class="seg" id="setEngine"><button data-v="gemma" data-i18n="best">Best</button><button data-v="nllb" data-i18n="fast">Fast</button></div></div>
       <div class="set-row"><label data-i18n="defaultTheme">Theme for new projects</label><select id="setTheme"></select></div>
       <div class="set-row"><label data-i18n="exportFolder">Export folder</label>
-        <button class="btn small" id="openOut"><span id="outDir2" dir="ltr"></span></button></div>
+        <div class="folder-row"><span class="path" id="outDir2" dir="ltr"></span>
+          <button class="btn small" id="changeOut" data-i18n="change">Change…</button>
+          <button class="btn small" id="openOut" data-i18n="openFolder">Open</button></div></div>
       <div class="about">
         <img src="/static/logo.svg" width="36" height="36" alt="">
         <div>

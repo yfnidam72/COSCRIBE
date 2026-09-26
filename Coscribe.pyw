@@ -29,6 +29,11 @@ def message(text: str) -> None:
 
 
 def ensure_ffmpeg() -> bool:
+    # A private copy (installed by CoscribeSetup.exe into tools\ffmpeg) always wins.
+    for d in glob.glob(str(ROOT / "tools" / "ffmpeg" / "**" / "bin"), recursive=True):
+        if Path(d, "ffmpeg.exe").exists():
+            os.environ["PATH"] = d + os.pathsep + os.environ["PATH"]
+            return True
     if shutil.which("ffmpeg") and shutil.which("ffprobe"):
         return True
     # Shortcuts can start with a thinner PATH than a terminal; look where winget puts it.
@@ -40,6 +45,15 @@ def ensure_ffmpeg() -> bool:
                 os.environ["PATH"] = d + os.pathsep + os.environ["PATH"]
                 return True
     return False
+
+
+class Bridge:
+    """Functions the web page can call as window.pywebview.api.*"""
+
+    def pick_folder(self, start: str = "") -> str | None:
+        import webview
+        picked = webview.windows[0].create_file_dialog(webview.FileDialog.FOLDER, directory=start or "")
+        return picked[0] if picked else None
 
 
 def port_busy() -> bool:
@@ -77,7 +91,7 @@ def main() -> None:
     webview.settings["ALLOW_DOWNLOADS"] = True
     webview.create_window(
         "Coscribe", f"http://127.0.0.1:{PORT}/", width=1440, height=900,
-        min_size=(1000, 660), background_color="#0c0c0f", text_select=True,
+        min_size=(1000, 660), background_color="#0c0c0f", text_select=True, js_api=Bridge(),
     )
     webview.start(gui="edgechromium", private_mode=False, icon=str(ICON),
                   storage_path=str(ROOT / "data" / "webview"))

@@ -23,7 +23,7 @@ APP_DIR = Path(__file__).resolve().parent
 FONTS_DIR = APP_DIR / "fonts"
 MODELS_DIR = APP_DIR.parent / "models"
 
-WHISPER_MODEL = os.environ.get("COSCRIBE_WHISPER", "large-v3")
+WHISPER_REPO = os.environ.get("COSCRIBE_WHISPER", "Systran/faster-whisper-large-v3")
 NLLB_REPO = "JustFrederik/nllb-200-distilled-600M-ct2-int8"
 NLLB_BIG_REPO = "OpenNMT/nllb-200-3.3B-ct2-int8"
 
@@ -160,16 +160,16 @@ def _ffmpeg_with_progress(cmd: list[str], duration: float, cb: Callable[[float],
 
 
 # ---------------------------------------------------------------- transcription
-def _load_whisper():
+def _load_whisper(repo: str = WHISPER_REPO):
     ensure_cuda_dlls()
     import numpy as np
     from faster_whisper import WhisperModel
     def make(device: str, compute: str):
         # Fully offline once cached; only reach the internet for the one-time download.
         try:
-            return WhisperModel(WHISPER_MODEL, device=device, compute_type=compute, local_files_only=True)
+            return WhisperModel(repo, device=device, compute_type=compute, local_files_only=True)
         except Exception:  # noqa: BLE001
-            return WhisperModel(WHISPER_MODEL, device=device, compute_type=compute)
+            return WhisperModel(repo, device=device, compute_type=compute)
 
     try:
         model = make("cuda", "float16")
@@ -181,9 +181,10 @@ def _load_whisper():
         return make("cpu", "int8"), "CPU"
 
 
-def transcribe(audio: Path, duration: float, language: str | None, progress: Progress) -> tuple[str, list[dict]]:
-    progress(0.02, "Loading speech model (first time can take a minute)")
-    model, dev = _load_whisper()
+def transcribe(audio: Path, duration: float, language: str | None, progress: Progress,
+               repo: str = WHISPER_REPO) -> tuple[str, list[dict]]:
+    progress(0.02, "Loading speech model (the first time downloads it)")
+    model, dev = _load_whisper(repo)
     try:
         # Accuracy-first decoding: full beam search with temperature fallback, generous VAD
         # padding so word edges aren't clipped, and hallucination suppression in silences.

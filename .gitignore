@@ -13,3 +13,9 @@ models/
 scratch/
 docs/darija-comparison.html
 *.log
+
+# Installer build output
+installer/build/
+installer/dist/
+*.spec
+scratch$*

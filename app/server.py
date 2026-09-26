@@ -19,16 +19,18 @@ from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 
 import engine
+import models
 
 log = logging.getLogger("coscribe")
 ROOT = engine.APP_DIR.parent
 PROJECTS = ROOT / "data" / "projects"
 PROJECTS.mkdir(parents=True, exist_ok=True)
-OUTPUT = Path.home() / "Videos" / "Coscribe"
+DEFAULT_OUTPUT = Path.home() / "Videos" / "Coscribe"
 THEMES_FILE = ROOT / "data" / "themes.json"
 SETTINGS_FILE = ROOT / "data" / "settings.json"
 DEFAULT_SETTINGS = {"uiLang": "en", "appearance": "dark", "defaultTarget": "ar", "defaultEngine": "gemma",
-                    "defaultTheme": None, "exportResolution": "source"}
+                    "defaultTheme": None, "exportResolution": "source", "whisperModel": "large-v3",
+                    "exportDir": str(DEFAULT_OUTPUT)}
 
 app = FastAPI(title="Coscribe")
 app.mount("/static", StaticFiles(directory=engine.APP_DIR / "static"), name="static")
@@ -131,7 +133,7 @@ def meta() -> dict:
                       for c, v in engine.LANGUAGES.items()],
         "fonts": [{"family": f, "arabic": a} for f, a in FONTS],
         "ratios": {f: round(engine.font_ratio(f), 4) for f, _ in FONTS},
-        "output": str(OUTPUT),
+        "output": str(out_dir()),
         "engines": _engines(),
         "main": list(engine.MAIN_LANGS),
         "experimental": list(engine.EXPERIMENTAL_LANGS),
@@ -152,6 +154,17 @@ def _write_json(path: Path, data) -> None:
     os.replace(tmp, path)
 
 
+def out_dir() -> Path:
+    """Where exports go: Settings > Export folder, default <Videos>/Coscribe. Always exists."""
+    d = Path(get_settings().get("exportDir") or DEFAULT_OUTPUT)
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        d = DEFAULT_OUTPUT
+        d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 @app.get("/api/settings")
 def get_settings() -> dict:
     return DEFAULT_SETTINGS | _read_json(SETTINGS_FILE, {})
@@ -161,9 +174,54 @@ def get_settings() -> dict:
 async def put_settings(req: Request) -> dict:
     body = await req.json()
     cur = get_settings()
-    cur.update({k: v for k, v in body.items() if k in DEFAULT_SETTINGS})
+    patch = {k: v for k, v in body.items() if k in DEFAULT_SETTINGS}
+    if "whisperModel" in patch and patch["whisperModel"] not in models.BY_ID:
+        raise HTTPException(400, "Unknown model")
+    if "exportDir" in patch:
+        try:
+            Path(patch["exportDir"]).mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise HTTPException(400, f"Can't use that folder: {exc}") from exc
+    cur.update(patch)
     _write_json(SETTINGS_FILE, cur)
     return cur
+
+
+# ---------------------------------------------------------------- models
+@app.get("/api/models")
+def list_models() -> dict:
+    busy = {j["project"][6:]: {k: j[k] for k in ("id", "progress", "message")}
+            for j in JOBS.values() if j["project"].startswith("model:") and j["state"] in ("queued", "running")}
+    rows = models.status()
+    for r in rows:
+        r["job"] = busy.get(r["id"])
+    return {"models": rows, "ollama": models.ollama_installed(), "active": get_settings()["whisperModel"]}
+
+
+@app.post("/api/models/{mid}/download")
+def download_model(mid: str) -> dict:
+    if mid not in models.BY_ID:
+        raise HTTPException(404, "Unknown model")
+    return submit(f"model:{mid}", "download", lambda pr: models.download(mid, pr))
+
+
+@app.delete("/api/models/{mid}")
+def delete_model(mid: str) -> dict:
+    if mid not in models.BY_ID:
+        raise HTTPException(404, "Unknown model")
+    models.remove(mid)
+    return {"ok": True}
+
+
+LINKS = {"ollama": "https://ollama.com/download", "repo": "https://github.com/yfnidam72/COSCRIBE"}
+
+
+@app.post("/api/open-link/{name}")
+def open_link(name: str) -> dict:
+    if name not in LINKS:  # fixed allow-list: the page can't open arbitrary URLs
+        raise HTTPException(404, "Unknown link")
+    os.startfile(LINKS[name])  # noqa: S606
+    return {"ok": True}
 
 
 @app.get("/api/themes")
@@ -316,7 +374,8 @@ def _transcribe(pid: str, language: str | None, progress) -> None:
     if not audio.exists():
         progress(0.01, "Extracting audio")
         engine.extract_audio(d / p["source"], audio)
-    lang, words = engine.transcribe(audio, p["duration"], language, progress)
+    model = models.BY_ID.get(get_settings()["whisperModel"]) or models.BY_ID["large-v3"]
+    lang, words = engine.transcribe(audio, p["duration"], language, progress, repo=model["repo"])
     if not words:
         raise RuntimeError("No speech was found in this video.")
     p = load(pid)
@@ -416,10 +475,9 @@ async def export(pid: str, req: Request) -> dict:
         ass = d / "captions.ass"
         # Captions are laid out at the output size, so they stay crisp after scaling.
         ass.write_text(engine.to_ass(cur["captions"], cur["style"] or {}, out_w, out_h), encoding="utf-8-sig")
-        OUTPUT.mkdir(parents=True, exist_ok=True)
         safe = re.sub(r'[<>:"/\\|?*]+', "_", cur["name"]).strip() or "video"
         suffix = f"_{cur['target']}" if cur.get("target") else ""
-        dst = _unique(OUTPUT / f"{safe}{suffix}_coscribe.mp4")
+        dst = _unique(out_dir() / f"{safe}{suffix}_coscribe.mp4")
         try:
             engine.export_video(d / cur["source"], ass, dst, cur, progress,
                                 size=(out_w, out_h) if out_h != cur["height"] else None)
@@ -454,15 +512,13 @@ def reveal(pid: str) -> dict:
     if target and Path(target).exists():
         subprocess.Popen(["explorer", "/select,", target])
     else:
-        OUTPUT.mkdir(parents=True, exist_ok=True)
-        os.startfile(OUTPUT)  # noqa: S606
+        os.startfile(out_dir())  # noqa: S606
     return {"ok": True}
 
 
 @app.post("/api/reveal-output")
 def reveal_output() -> dict:
-    OUTPUT.mkdir(parents=True, exist_ok=True)
-    os.startfile(OUTPUT)  # noqa: S606
+    os.startfile(out_dir())  # noqa: S606
     return {"ok": True}
 
 
@@ -476,9 +532,8 @@ async def save_srt(pid: str, req: Request) -> dict:
     if not any(c.get(field) for c in p["captions"]):
         raise HTTPException(400, "Nothing to save yet - translate first.")
     tag = p.get("target") if field == "tr" else p.get("language")
-    OUTPUT.mkdir(parents=True, exist_ok=True)
     safe = re.sub(r'[<>:"/\|?*]+', "_", p["name"]).strip() or "video"
-    dst = _unique(OUTPUT / f"{safe}.{tag or field}.{fmt}")
+    dst = _unique(out_dir() / f"{safe}.{tag or field}.{fmt}")
     dst.write_text((engine.to_srt if fmt == "srt" else engine.to_vtt)(p["captions"], field), encoding="utf-8")
     subprocess.Popen(["explorer", "/select,", str(dst)])
     return {"name": dst.name, "path": str(dst)}
