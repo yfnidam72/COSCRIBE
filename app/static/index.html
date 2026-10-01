@@ -62,6 +62,19 @@
     </div>
   </header>
 
+  <form class="linkbar" id="linkForm" autocomplete="off">
+    <span class="linkbar-ico"><svg viewBox="0 0 24 24" class="ico"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg></span>
+    <input id="linkInput" type="url" dir="ltr" data-i18n-ph="linkPlaceholder" placeholder="Paste a YouTube link…" required>
+    <label class="field-inline">
+      <span data-i18n="translateTo">Translate to</span>
+      <select id="linkTarget"></select>
+    </label>
+    <button class="btn primary" id="linkBtn" type="submit">
+      <svg viewBox="0 0 24 24" class="ico"><path d="M12 4v12m0 0-4.5-4.5M12 16l4.5-4.5"/><path d="M4 20h16"/></svg>
+      <span data-i18n="linkGo">Download &amp; caption</span>
+    </button>
+  </form>
+
   <div class="banner" id="modelBanner" hidden>
     <svg viewBox="0 0 24 24" class="ico"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9L12 3Z"/><path d="M12 8v5m0 3v.5"/></svg>
     <span id="modelBannerText"></span>

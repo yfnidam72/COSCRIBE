@@ -23,6 +23,7 @@ Drop a video. Coscribe listens, writes the captions, translates them, lets you s
 ## Features
 
 - **Project library**: thumbnails, search, filters (in progress / translated / exported), sorting, rename, duplicate, delete. Drop a video anywhere in the app to start a project.
+- **Import from a link**: paste a YouTube link (or any site [yt-dlp](https://github.com/yt-dlp/yt-dlp) supports) in the Library, pick a language, and Coscribe downloads the video (up to 1080p), transcribes it and translates it in one go. Single videos only, no playlists, live streams or private videos. Only download videos you have the right to use.
 - **Accurate transcription**: Whisper large-v3 on the GPU, with accuracy-first decoding and word-level timing.
 - **Two translation qualities**: *Best* (Google TranslateGemma 12B) and *Fast* (Meta NLLB-200 600M). Whole sentences are translated together, then split back across the captions at natural pauses.
 - **Caption editor**: edit any line, split at the cursor, merge, delete, add captions at the playhead, set start/end timing (`[` `]`), find & replace, undo/redo.
@@ -83,6 +84,7 @@ app/server.py       FastAPI: projects, jobs (one GPU worker, cancellable), theme
 app/engine.py       probe, Whisper, caption building, NLLB, ASS/SRT/VTT, FFmpeg export
 app/translators.py  TranslateGemma + Atlas-Chat via Ollama, output clean-up and number checks
 app/models.py       model catalog: status, download, remove
+app/download.py     link import via yt-dlp (+ a private Deno for YouTube, fetched on first use)
 installer/          CoscribeSetup.exe source (web installer)
 app/static/         the interface (vanilla JS): library, editor, themes, i18n (en/fr/ar)
 app/fonts/          caption fonts (SIL Open Font License)
@@ -113,4 +115,4 @@ Whisper (MIT) · TranslateGemma ([Gemma Terms of Use](https://ai.google.dev/gemm
 ## Credits
 
 Built by **Youssef Nidam** (MARIA · LA BASE, Casablanca), with Claude.
-Models: OpenAI Whisper, Google TranslateGemma, Meta NLLB-200, MBZUAI-Paris Atlas-Chat. Fonts: Google Fonts (OFL).
+Link import: yt-dlp (Unlicense), Deno (MIT). Models: OpenAI Whisper, Google TranslateGemma, Meta NLLB-200, MBZUAI-Paris Atlas-Chat. Fonts: Google Fonts (OFL).

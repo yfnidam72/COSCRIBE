@@ -172,6 +172,15 @@ input:focus, select:focus { outline: none; border-color: var(--accent); }
 .lib-head h1 { font-size: 26px; letter-spacing: -.02em; margin: 0; }
 .lib-head p { margin: 4px 0 0; max-width: 640px; }
 .lib-new { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.linkbar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; padding: 8px 8px 8px 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+}
+.linkbar:focus-within { border-color: var(--accent); }
+.linkbar-ico { display: flex; color: var(--text-3); }
+.linkbar input { flex: 1 1 240px; min-width: 0; border: 0; background: transparent; box-shadow: none; padding-inline: 4px; }
+.linkbar input:focus { outline: none; box-shadow: none; }
+.linkbar .btn[disabled] { opacity: .6; cursor: progress; }
 .lib-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
 .lib-tools .sort { margin-inline-start: auto; }
 

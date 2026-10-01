@@ -1,6 +1,7 @@
 """Coscribe local server: a tiny API + the single-page UI, all on 127.0.0.1."""
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -18,6 +19,7 @@ from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+import download
 import engine
 import models
 
@@ -297,6 +299,8 @@ def thumb(pid: str):
     t = d / "thumb.jpg"
     if not t.exists():
         p = load(pid)
+        if not p.get("preview"):
+            raise HTTPException(404, "No thumbnail yet")
         engine.make_thumb(d / p["preview"], t, p.get("duration") or 0)
     if not t.exists():
         raise HTTPException(404, "No thumbnail")
@@ -362,6 +366,73 @@ async def create_project(file: UploadFile, language: str = "") -> dict:
         _transcribe(pid, language or None, progress)
 
     job = submit(pid, "transcribe", run)
+    return {"project": public(p), "job": job}
+
+
+@app.post("/api/projects/url")
+async def create_from_url(req: Request) -> dict:
+    """Download from a link, then transcribe and (optionally) translate in one job."""
+    body = await req.json()
+    url = (body.get("url") or "").strip()
+    language = body.get("language") or None
+    target = body.get("target") or None
+    eng = body.get("engine") or get_settings()["defaultEngine"]
+    if not download.looks_like_url(url):
+        raise HTTPException(400, "Paste a full link that starts with https://")
+    if target and target not in engine.LANGUAGES:
+        raise HTTPException(400, "Unknown target language")
+    if eng not in engine.ENGINES:
+        eng = "nllb"
+    try:
+        meta = await asyncio.to_thread(download.info, url)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
+
+    pid = uuid.uuid4().hex[:12]
+    d = PROJECTS / pid
+    d.mkdir(parents=True)
+    # A placeholder until the file arrives; the library shows it with the download progress.
+    p = {"id": pid, "name": meta["title"][:120], "source": None, "preview": None, "origin": meta["url"],
+         "duration": meta["duration"], "width": 1920, "height": 1080, "has_audio": True,
+         "created": time.time(), "language": None, "target": None, "length": "normal", "captions": [],
+         "words": [], "style": None, "exported": None, "engine": None}
+    save(p)
+
+    def run(progress):
+        src = download.fetch(meta["url"], d, lambda f, m: progress(f * 0.25, m))
+        info = engine.probe(src)
+        engine.make_thumb(src, d / "thumb.jpg", info["duration"])
+        cur = load(pid)
+        cur.update(source=src.name, preview=src.name, **info)
+        save(cur)
+        steps = 0.55 if target else 0.75
+        if not engine.browser_playable(info, src):
+            engine.make_proxy(src, d / "preview.mp4", info["duration"], lambda f, m: progress(0.25 + f * 0.1, m))
+            cur = load(pid)
+            cur["preview"] = "preview.mp4"
+            save(cur)
+        _transcribe(pid, language, lambda f, m: progress(0.35 + f * (steps - 0.1), m))
+        if not target:
+            return
+        cur = load(pid)
+        if cur["language"] == target or cur["language"] not in engine.LANGUAGES:
+            return  # already in that language, or a source we can't translate from
+        caps = cur["captions"]
+        engine.translate(caps, cur["language"], target, lambda f, m: progress(0.8 + f * 0.2, m), engine=eng)
+        cur = load(pid)
+        cur.update(captions=caps, target=target, engine=eng)
+        save(cur)
+
+    def guarded(progress):
+        try:
+            run(progress)
+        except Exception:
+            cur = load(pid)
+            if not cur.get("source"):  # nothing usable arrived; don't leave an empty card behind
+                shutil.rmtree(d, ignore_errors=True)
+            raise
+
+    job = submit(pid, "link", guarded)
     return {"project": public(p), "job": job}
 
 
@@ -571,6 +642,8 @@ def project_jobs(pid: str) -> list[dict]:
 @app.get("/media/{pid}")
 def media(pid: str, request: Request):
     p = load(pid)
+    if not p.get("preview"):
+        raise HTTPException(404, "Still downloading")
     path = PROJECTS / pid / p["preview"]
     size = path.stat().st_size
     ctype = {".mp4": "video/mp4", ".m4v": "video/mp4", ".webm": "video/webm",

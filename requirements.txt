@@ -8,6 +8,8 @@ ctranslate2==4.8.2
 sentencepiece==0.2.2
 huggingface-hub==1.32.0
 fonttools==4.66.0
+# Link import (YouTube etc.); unpinned on purpose - sites change and yt-dlp follows weekly
+yt-dlp[default]>=2026.8.19
 # CUDA libraries CTranslate2 needs on Windows (see app/gpu.py)
 nvidia-cublas-cu12==12.9.2.10
 nvidia-cudnn-cu12==9.26.0.51

@@ -464,6 +464,10 @@ function fillLangSelect(sel, { asrOnly = false, exclude = null, selected = null,
 function refreshLangSelects() {
   const spoken = $("#spokenLang").value;
   fillLangSelect($("#spokenLang"), { asrOnly: true, auto: true, selected: spoken || "" });
+  const lt = $("#linkTarget").value;
+  fillLangSelect($("#linkTarget"), { selected: lt || S.settings.defaultTarget || "ar" });
+  $("#linkTarget").prepend(new Option(t("noTranslation"), "none"));
+  if (lt === "none") $("#linkTarget").value = "none";
   fillLangSelect($("#reLang"), { asrOnly: true, selected: (S.project && S.project.language) || "en" });
   if (S.project) fillTargets($("#targetLang").value || null);
 }
@@ -472,6 +476,15 @@ function refreshLangSelects() {
 function wireLibrary() {
   const input = $("#fileInput");
   $("#newBtn").addEventListener("click", () => input.click());
+  $("#linkForm").addEventListener("submit", (e) => { e.preventDefault(); importLink(); });
+  // Pasting a link anywhere in the library (outside a text field) drops it into the link bar.
+  document.addEventListener("paste", (e) => {
+    if ($("#library").hidden || e.target.closest("input, textarea, select")) return;
+    const text = (e.clipboardData && e.clipboardData.getData("text") || "").trim();
+    if (!/^https?:\/\/\S+$/.test(text)) return;
+    $("#linkInput").value = text;
+    $("#linkInput").focus();
+  });
   input.addEventListener("change", () => { if (input.files[0]) upload(input.files[0]); input.value = ""; });
   $("#libSearch").addEventListener("input", (e) => { S.lib.q = e.target.value.trim().toLowerCase(); renderLibrary(); });
   $("#libSort").addEventListener("change", (e) => { S.lib.sort = e.target.value; renderLibrary(); });
@@ -623,6 +636,28 @@ function upload(file) {
   };
   xhr.onerror = () => { uploading = null; renderLibrary(); toast(t("importFailed"), true); };
   xhr.send(fd);
+}
+
+async function importLink() {
+  const url = $("#linkInput").value.trim();
+  if (!/^https?:\/\/\S+\.\S+/.test(url)) { toast(t("linkInvalid"), true); return; }
+  const btn = $("#linkBtn");
+  btn.disabled = true;
+  btn.querySelector("span").textContent = t("linkChecking");
+  try {
+    const target = $("#linkTarget").value;
+    const data = await api("/api/projects/url", { json: {
+      url, language: $("#spokenLang").value, target: target === "none" ? null : target,
+      engine: S.settings.defaultEngine } });
+    $("#linkInput").value = "";
+    toast(t("linkStarted", { name: data.project.name }));
+    loadLibrary();
+  } catch (e) {
+    toast(e.message || t("importFailed"), true);
+  } finally {
+    btn.disabled = false;
+    btn.querySelector("span").textContent = t("linkGo");
+  }
 }
 
 /* ================================================================ caption renderer (shared) */
@@ -1349,12 +1384,14 @@ function track(job) {
       S.job = null; showJob(null);
       await reloadProject();
       if (j.kind === "transcribe") { S.undo = []; S.redo = []; toast(t("doneTranscribe", { n: S.project.captions.length })); }
-      if (j.kind === "translate") toast(t("doneTranslate"));
+      if (j.kind === "translate" || (j.kind === "link" && S.project.target)) toast(t("doneTranslate"));
+      if (j.kind === "link" && !S.project.target) { S.undo = []; S.redo = []; toast(t("doneTranscribe", { n: S.project.captions.length })); }
       if (j.kind === "export") { switchTab("export"); toast(t("doneExport")); }
     } else if (j.state === "error" || j.state === "cancelled") {
       S.job = null; showJob(null);
       toast(j.state === "cancelled" ? t("cancelled") : j.error, j.state === "error");
-      await reloadProject();
+      // A link import that failed before the video arrived removes its project.
+      try { await reloadProject(); } catch { S.project = null; $("#railEditor").hidden = true; location.hash = "#/"; }
     } else {
       pollTimer = setTimeout(poll, 500);
     }
