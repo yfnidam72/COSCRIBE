@@ -82,7 +82,9 @@ def info(url: str) -> dict:
     if i.get("is_live"):
         raise ValueError("Live streams can't be imported. Try again once the stream has ended.")
     return {"title": i.get("title") or "Video", "duration": float(i.get("duration") or 0),
-            "url": i.get("webpage_url") or url}
+            "url": i.get("webpage_url") or url, "thumbnail": i.get("thumbnail"),
+            "uploader": i.get("uploader") or i.get("channel") or i.get("extractor_key") or "",
+            "height": min(int(i.get("height") or 1080), 1080)}
 
 
 def fetch(url: str, folder: Path, progress) -> Path:
@@ -98,8 +100,10 @@ def fetch(url: str, folder: Path, progress) -> Path:
         part = 0.0 if d.get("info_dict", {}).get("vcodec", "none") != "none" else 0.85
         span = 0.85 if part == 0.0 else 0.15
         frac = part + span * (done / total if total else 0)
-        mb = done / 1e6
-        progress(min(frac, 0.99), f"Downloading video · {mb:.0f} MB" + (f" of {total / 1e6:.0f} MB" if total else ""))
+        msg = "Downloading video"
+        if total >= 2e6:
+            msg += f" · {done / 1e6:.0f} of {total / 1e6:.0f} MB"
+        progress(min(frac, 0.99), msg)
 
     ensure_runtime(lambda f, m: progress(0, m))
     opts = _base_opts() | {

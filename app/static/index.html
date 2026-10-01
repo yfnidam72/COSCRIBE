@@ -65,13 +65,9 @@
   <form class="linkbar" id="linkForm" autocomplete="off">
     <span class="linkbar-ico"><svg viewBox="0 0 24 24" class="ico"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg></span>
     <input id="linkInput" type="url" dir="ltr" data-i18n-ph="linkPlaceholder" placeholder="Paste a YouTube link…" required>
-    <label class="field-inline">
-      <span data-i18n="translateTo">Translate to</span>
-      <select id="linkTarget"></select>
-    </label>
     <button class="btn primary" id="linkBtn" type="submit">
       <svg viewBox="0 0 24 24" class="ico"><path d="M12 4v12m0 0-4.5-4.5M12 16l4.5-4.5"/><path d="M4 20h16"/></svg>
-      <span data-i18n="linkGo">Download &amp; caption</span>
+      <span data-i18n="linkImport">Import</span>
     </button>
   </form>
 
@@ -400,6 +396,31 @@
   <div class="modal-card narrow" role="dialog" aria-modal="true" aria-labelledby="keysTitle">
     <header><h2 id="keysTitle" data-i18n="shortcuts">Keyboard shortcuts</h2><button class="x" data-close>×</button></header>
     <div class="modal-body keys" id="keysList"></div>
+  </div>
+</div>
+
+<div class="modal" id="linkModal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="linkTitle">
+    <header><h2 id="linkTitle" data-i18n="linkConfirmTitle">Download this video?</h2><button class="x" data-close>×</button></header>
+    <form class="modal-body" id="linkConfirm">
+      <div class="link-preview">
+        <div class="link-thumb"><img id="linkThumb" alt="" referrerpolicy="no-referrer"><span class="dur" id="linkDur" dir="ltr"></span></div>
+        <div class="link-info">
+          <strong id="linkName"></strong>
+          <span class="muted" id="linkBy"></span>
+          <span class="muted small" id="linkHost" dir="ltr"></span>
+        </div>
+      </div>
+      <div class="link-opts">
+        <label class="field-inline"><span data-i18n="spokenLanguage">Spoken language</span><select id="linkSpoken"></select></label>
+        <label class="field-inline"><span data-i18n="translateTo">Translate to</span><select id="linkTarget"></select></label>
+      </div>
+      <p class="muted small" data-i18n="linkSteps">Coscribe will download the video, write the captions and translate them. You'll follow the progress in the editor.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close data-i18n="cancel">Cancel</button>
+        <button type="submit" class="btn primary" id="linkOk" data-i18n="linkGo">Download &amp; caption</button>
+      </div>
+    </form>
   </div>
 </div>
 

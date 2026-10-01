@@ -369,6 +369,27 @@ async def create_project(file: UploadFile, language: str = "") -> dict:
     return {"project": public(p), "job": job}
 
 
+LINK_INFO: dict[str, dict] = {}  # url -> info, so confirming doesn't look the video up twice
+
+
+async def _link_info(url: str) -> dict:
+    if not download.looks_like_url(url):
+        raise HTTPException(400, "Paste a full link that starts with https://")
+    if url not in LINK_INFO:
+        try:
+            LINK_INFO[url] = await asyncio.to_thread(download.info, url)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+    return LINK_INFO[url]
+
+
+@app.post("/api/link/info")
+async def link_info(req: Request) -> dict:
+    """Look a link up (title, length, thumbnail) so the user can confirm before downloading."""
+    body = await req.json()
+    return await _link_info((body.get("url") or "").strip())
+
+
 @app.post("/api/projects/url")
 async def create_from_url(req: Request) -> dict:
     """Download from a link, then transcribe and (optionally) translate in one job."""
@@ -377,22 +398,18 @@ async def create_from_url(req: Request) -> dict:
     language = body.get("language") or None
     target = body.get("target") or None
     eng = body.get("engine") or get_settings()["defaultEngine"]
-    if not download.looks_like_url(url):
-        raise HTTPException(400, "Paste a full link that starts with https://")
     if target and target not in engine.LANGUAGES:
         raise HTTPException(400, "Unknown target language")
     if eng not in engine.ENGINES:
         eng = "nllb"
-    try:
-        meta = await asyncio.to_thread(download.info, url)
-    except ValueError as exc:
-        raise HTTPException(400, str(exc)) from exc
+    meta = await _link_info(url)
 
     pid = uuid.uuid4().hex[:12]
     d = PROJECTS / pid
     d.mkdir(parents=True)
     # A placeholder until the file arrives; the library shows it with the download progress.
     p = {"id": pid, "name": meta["title"][:120], "source": None, "preview": None, "origin": meta["url"],
+         "thumbnail": meta.get("thumbnail"),
          "duration": meta["duration"], "width": 1920, "height": 1080, "has_audio": True,
          "created": time.time(), "language": None, "target": None, "length": "normal", "captions": [],
          "words": [], "style": None, "exported": None, "engine": None}

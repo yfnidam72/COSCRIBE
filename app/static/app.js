@@ -477,6 +477,7 @@ function wireLibrary() {
   const input = $("#fileInput");
   $("#newBtn").addEventListener("click", () => input.click());
   $("#linkForm").addEventListener("submit", (e) => { e.preventDefault(); importLink(); });
+  $("#linkConfirm").addEventListener("submit", (e) => { e.preventDefault(); confirmLink(); });
   // Pasting a link anywhere in the library (outside a text field) drops it into the link bar.
   document.addEventListener("paste", (e) => {
     if ($("#library").hidden || e.target.closest("input, textarea, select")) return;
@@ -638,6 +639,7 @@ function upload(file) {
   xhr.send(fd);
 }
 
+let linkPending = null;
 async function importLink() {
   const url = $("#linkInput").value.trim();
   if (!/^https?:\/\/\S+\.\S+/.test(url)) { toast(t("linkInvalid"), true); return; }
@@ -645,18 +647,44 @@ async function importLink() {
   btn.disabled = true;
   btn.querySelector("span").textContent = t("linkChecking");
   try {
-    const target = $("#linkTarget").value;
-    const data = await api("/api/projects/url", { json: {
-      url, language: $("#spokenLang").value, target: target === "none" ? null : target,
-      engine: S.settings.defaultEngine } });
-    $("#linkInput").value = "";
-    toast(t("linkStarted", { name: data.project.name }));
-    loadLibrary();
+    const info = await api("/api/link/info", { json: { url } });
+    linkPending = url;
+    $("#linkName").textContent = info.title;
+    $("#linkBy").textContent = info.uploader || "";
+    $("#linkHost").textContent = new URL(info.url).hostname.replace(/^www\./, "");
+    $("#linkDur").textContent = fmt(info.duration);
+    $("#linkDur").hidden = !info.duration;
+    const img = $("#linkThumb");
+    img.hidden = !info.thumbnail;
+    if (info.thumbnail) img.src = info.thumbnail;
+    fillLangSelect($("#linkSpoken"), { asrOnly: true, auto: true, selected: $("#spokenLang").value || "" });
+    openModal("#linkModal");
+    setTimeout(() => $("#linkOk").focus(), 40);
   } catch (e) {
     toast(e.message || t("importFailed"), true);
   } finally {
     btn.disabled = false;
-    btn.querySelector("span").textContent = t("linkGo");
+    btn.querySelector("span").textContent = t("linkImport");
+  }
+}
+
+async function confirmLink() {
+  if (!linkPending) return;
+  const ok = $("#linkOk");
+  ok.disabled = true;
+  try {
+    const target = $("#linkTarget").value;
+    const data = await api("/api/projects/url", { json: {
+      url: linkPending, language: $("#linkSpoken").value, target: target === "none" ? null : target,
+      engine: S.settings.defaultEngine } });
+    linkPending = null;
+    $("#linkInput").value = "";
+    closeModals();
+    location.hash = `#/p/${data.project.id}`;  // follow the download in the editor
+  } catch (e) {
+    toast(e.message || t("importFailed"), true);
+  } finally {
+    ok.disabled = false;
   }
 }
 
@@ -841,7 +869,9 @@ async function openProject(id) {
       const th = allThemes().find((x) => x.id === S.settings.defaultTheme);
       if (th) { const st = themeStyle(th); for (const k of STYLE_KEYS) S.style[k] = st[k]; }
     }
-    video.src = `/media/${p.id}?v=${encodeURIComponent(p.preview)}`;
+    // A link import has no file yet: show the site's thumbnail until the download lands.
+    if (p.preview) { video.removeAttribute("poster"); video.src = `/media/${p.id}?v=${encodeURIComponent(p.preview)}`; }
+    else { video.removeAttribute("src"); video.load(); if (p.thumbnail) video.poster = p.thumbnail; }
     switchTab("captions");
     $("#findInput").value = "";
     $("#doneBox").hidden = true;
@@ -859,8 +889,9 @@ async function openProject(id) {
 
 async function reloadProject() {
   const p = await api(`/api/projects/${S.project.id}`);
-  if (p.preview !== S.project.preview) {
+  if (p.preview && p.preview !== S.project.preview) {
     const tm = video.currentTime;
+    video.removeAttribute("poster");
     video.src = `/media/${p.id}?v=${encodeURIComponent(p.preview)}`;
     video.currentTime = tm;
   }
